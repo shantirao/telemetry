@@ -24,6 +24,7 @@ Publisher commands:
 Subscriber commands
 
   >channel name
+  
   ok number
   error 'name' not found
 
@@ -34,6 +35,7 @@ Subscriber commands
   Subscribes to changes on that channel. Will create a channel if one of that name doesn't already exist. When that channel changes, the server will send out-of-band "info" messages.
 
   >stop [channel name or number]
+  
   ok
 
   Stop listening to a channel (or blank for all)
