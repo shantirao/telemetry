@@ -1,0 +1,215 @@
+<html>
+<head>
+<title>Real-time database</title>
+<script language="javascript" type="text/javascript" src="common.js" version="1.7" ></script>
+<script language="javascript" type="text/javascript" src="plotcanvas.js" version="1.7" ></script>
+<style>
+body,html {height: 100%; margin:0; padding:0; overflow:auto; font: 10pt Arial,Helvetica,sans-serif;min-height: 100%; max-height: 100%;}
+h1 {font-size: 12pt; margin-top: 0px; background:#ffd0b0; margin:-3px; -moz-border-radius: 3px; margin-bottom: 3px; padding: 4px;}
+.section {background: #ffffff;border: 1px solid #c02020; -moz-border-radius:5px; margin: 5px; padding: 3px; }
+table {border-collapse: collapse;}
+td {font: 10pt Arial,Helvetica,sans-serif; border:1px solid #c0c0c0; padding: 3px;}
+
+</style>
+<script>
+var channel = window.location.search.replace('?','').split('.')
+var field = channel[1]
+channel = channel[0]
+
+document.title= "Plot data from " + channel
+
+var columns = []
+var data = []
+var series = []
+var nextId = 0
+var clickMap = null
+
+var colors = ["blue","green","purple","red","orange","yellow"]
+
+function debug(text) {$('debug').innerHTML = text}
+
+function timeToHour(x) {if (x.length<6) x = '0'+x; var t = x.match(/\d\d/g).map(Number); return t[0]+ t[1]/60 + t[2]/3600;}
+
+function selectChannels(text)
+{
+ var lines = text.split('\n').map(function(f) '<a href="?' + f + '">'+f+'</a>')
+ $('fields').innerHTML = lines.join('<br>')
+
+}
+
+function selectField(name)
+{
+ field = name
+ document.title= "Plot data from " + channel + "." + field
+ var i=0;
+ if (field)
+ {
+ try{
+   series = data.map(function(x)
+   		{
+   			var v = x.value[field]
+   			if (typeof v == "undefined") throw "Bad value: " + x.toSource()
+
+   			if (typeof v == "string")
+   			 return [timeToHour(x.time)].concat(v.split(/[ ,]/g).map(Number))
+
+   			if (typeof v == "number")
+   			 return [timeToHour(x.time),v]
+
+   			if (v.constructor.name == "Array")
+   			 return [timeToHour(x.time)].concat(v)
+   			return [timeToHour(x.time),Number(v)]
+   		})
+
+   $('caption').innerHTML = name + " vs time"
+   resizePlot($('canvas'),series)
+   clickMap = plotData($('canvas'),series,{margin:50, dots:3,timeSeries: true, colors:colors})
+   } catch(err) {debug(err)}
+ }
+ else
+ {
+  if (columns.length)
+   series = data.map(function(x) [ timeToHour(x.time),Number(x.id)])
+  else
+   series = data.map(function(x) [ timeToHour(x.time),Number(x.value) || parseInt(x.value)])
+
+   $('caption').innerHTML = "Events vs time"
+   resizePlot($('canvas'),series)
+   clickMap = plotData($('canvas'),series,{margin:50, dots:3, lines:false,timeSeries: true})
+ }
+
+}
+
+function reset()
+{
+ data = []
+ columns = []
+ series = []
+ nextId = 0;
+}
+
+function drawColumns(current)
+{
+ var s = ['<span onClick="selectField()">Events:'+channel+'</span>']
+ if (!columns.length)
+    s.push('<br><span onClick="selectField(\'' + n.name + '\')">' + n.name + '(' + n.type + ')</span>')
+
+ for (var i=0; i<columns.length; i++)
+ {
+   var n =columns[i]
+   if (n.name == current) s.push('<b>')
+   s.push('<br><span onClick="selectField(\'' + n.name + '\')">' + n.name + '(' + n.type + ')</span>')
+   if (n.name == current) s.push('</b>')
+ }
+
+ $('fields').innerHTML = s.join('')
+}
+
+function loadData(text)
+{
+ var lines = text.split('\n')
+ var any = false
+ var newcolumn = false
+
+ var header, content
+ while (lines.length> 1)
+ {
+  //data id channel size 0 time 0
+  header = lines.shift().split(' ')
+  content = lines.shift()
+
+  if (content[0] == '(' && content[1] == '{')
+    content=eval(content)
+
+  var id = header[1]
+  data.push({id: id, time: header[5], value: content})
+  if (id > nextId) nextId = Number(id) + 1
+  any = true
+ }
+
+ if (typeof content == "object")
+ for (var n in content)
+ {
+   if (!columns.some(function(x) x.name == n))
+   {
+    columns.push({name:n, type: typeof content[n]})
+    newcolumn = true
+   }
+ }
+
+ if (any && !field && columns.length)
+  selectField(columns[0].name)
+ else if (any)
+  selectField(field)
+
+ if (newcolumn)
+  drawColumns(field)
+}
+
+function draw()
+{
+ loadXMLDoc('/select?' + escape(channel) +','+nextId,loadData)
+}
+
+if (channel)
+{
+ draw()
+ window.setInterval(draw, 1234)
+}
+else
+{
+ loadXMLDoc('/channels',selectChannels)
+}
+//  onload="draw()"
+</script>
+</head>
+<body style="border-top:0px; margin:0px; font-family: sans-serif;">
+<div id=fields style="display:inline-block; padding:4px;vertical-align:top; position:relative;">
+
+</div>
+<div style="display:inline-block; vertical-align:top; border:1px solid black; position:relative;">
+<center><span id=caption>Plot</span> <span id=location></span></center><br>
+  <canvas id="canvas" width="640" height="480"></canvas>
+
+</div>
+<br>
+<div id=debug></div>
+
+<script>
+//button onClick="$('debug').innerHTML=data.toSource()">Debug</button>
+
+function getCursorPosition(e)
+{
+    var x;
+    var y;
+    if (e.pageX != undefined && e.pageY != undefined)
+    {
+		x = e.pageX;
+		y = e.pageY;
+    }
+    else
+    {
+		x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+		y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+	}
+    var o = e.target;
+    while (o)
+    {
+		x -= o.offsetLeft;
+		y -= o.offsetTop;
+		o = o.offsetParent;
+    }
+    return [x,y]
+}
+
+function canvasClick(e)
+{
+ if (!clickMap) return
+ var position = clickMap.apply(null,getCursorPosition(e))
+ $('location').innerHTML = '(' + position[0].toFixed(3) + ', ' + position[1].toFixed(3) + ')'
+}
+
+$('canvas').addEventListener('click',canvasClick,true,false)
+</script>
+ </body>
+</html>

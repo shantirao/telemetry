@@ -1,0 +1,55 @@
+<html>
+<head>
+<title>Real-time database</title>
+<script language="javascript" type="text/javascript" src="common.js" ></script>
+<script language="javascript" type="text/javascript" src="rtdb.js" ></script>
+<style>
+body,html {margin:0; padding:0; overflow:auto; font: 10pt Arial,Helvetica,sans-serif;min-height: 100%; max-height: 100%;}
+h1 {font-size: 12pt; margin-top: 0px; background:#ffd0b0; margin:-3px; border-radius: 3px; margin-bottom: 3px; padding: 4px;}
+.section {background: #ffffff;border: 1px solid #c02020; border-radius:5px; margin: 5px; padding: 3px; }
+table {border-collapse: collapse;}
+td {font: 10pt Arial,Helvetica,sans-serif; border:1px solid #c0c0c0; padding: 3px;}
+
+</style>
+</head>
+<body style="background: #000000;border-top:0px; margin:0px; font-family: sans-serif;">
+
+<div id=header style="background: #0066b2; color: #ffffff; padding:3px; font-weight: bold;">
+Database: <span id=dbname></span> started <span id=startTime></span>
+<button onClick="openRequests=0; status('wait'); loadXMLDoc('/snapshot',snapshot)">Refresh</button>
+<button onClick="window.open(window.location,'_new','toolbar=no')">New view</button>
+<button style="float:right; " onClick="loadXMLDoc('/quit',function(){window.close()})">Quit</button>
+<span id=status></span><span id=status2></span>
+</div>
+
+<div class=section>
+<H1>Current snapshot </H1>
+<table width=100% id=snapshot></table>
+</div>
+
+<div class=section>
+<H1>Historical snapshot at <span id=when></span></H1>
+<table width=100% id=data valign=top></table>
+</div>
+
+<div class=section>
+<H1>Event snapshot</H1>
+<table width=100% id=event valign=top></table>
+</div>
+
+<div class=section>
+
+<H1>History of <span id=title></span> <button onClick="historyAsTable = !historyAsTable; if (!historyAsTable) historyChannel = ''">Table view</button><button onClick="if (historyChannel) window.open('plot.html?'+historyChannel,'plot'+historyChannel)">Plot</button></H1>
+<div id=history style="border-top:1px solid #c0c0c0; padding: 3px;overflow:auto"></div>
+
+</div>
+
+<span id=debug style="background:#ffffff">
+</span>
+
+<script>
+loadXMLDoc('/about',function(x){$('dbname').innerHTML = x});
+loadXMLDoc('/start',setStartTime);
+</script>
+</body>
+</html>
